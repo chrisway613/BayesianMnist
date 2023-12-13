@@ -10,42 +10,88 @@ import numpy as np
 
 import torch
 import torch.nn as nn
-from torch.nn.parameter import Parameter
 
+from torch.nn.parameter import Parameter
 from torch.distributions.normal import Normal
 
 
-class VIModule(nn.Module) :
-	"""
-	A mixin class to attach loss functions to layer. This is usefull when doing variational inference with deep learning.
-	"""
+# class VIModule(nn.Module) :
+# 	"""
+# 	A mixin class to attach loss functions to layer. This is useful when doing variational inference with deep learning.
+# 	"""
 	
-	def __init__(self, *args, **kwargs) :
+# 	def __init__(self, *args, **kwargs) :
+# 		super().__init__(*args, **kwargs)
+		
+# 		self._internalLosses = []
+# 		self.lossScaleFactor = 1
+		
+# 	def addLoss(self, func) :
+# 		self._internalLosses.append(func)
+		
+# 	def evalLosses(self) :
+# 		t_loss = 0
+		
+# 		for l in self._internalLosses :
+# 			t_loss = t_loss + l(self)
+			
+# 		return t_loss
+	
+# 	def evalAllLosses(self) :
+# 		t_loss = self.evalLosses() * self.lossScaleFactor
+		
+# 		for m in self.children() :
+# 			if isinstance(m, VIModule) :
+# 				t_loss = t_loss + m.evalAllLosses() * self.lossScaleFactor
+				
+# 		return t_loss
+
+
+class VIModule(nn.Module):
+	"""
+	A mixin class to attach loss functions to layer. This is useful when doing variational inference with deep learning.
+	"""
+
+	def __init__(self, *args, **kwargs):
+		"""
+		Initialize the VIModule with optional arguments and keyword arguments.
+		"""
+
 		super().__init__(*args, **kwargs)
 		
-		self._internalLosses = []
-		self.lossScaleFactor = 1
+		self._internal_losses = []
+		self.loss_scale_factor = 1
+
+	def add_loss(self, func):
+		"""
+		Add a loss function to the VIModule.
+		"""
+
+		self._internal_losses.append(func)
+
+	def eval_losses(self):
+		"""
+		Evaluate the loss functions added to the VIModule and return their sum.
+		"""
+
+		t_loss = 0.
+		for loss_func in self._internal_losses:
+			t_loss = t_loss + loss_func(self)
 		
-	def addLoss(self, func) :
-		self._internalLosses.append(func)
-		
-	def evalLosses(self) :
-		t_loss = 0
-		
-		for l in self._internalLosses :
-			t_loss = t_loss + l(self)
-			
 		return t_loss
-	
-	def evalAllLosses(self) :
-		
-		t_loss = self.evalLosses()*self.lossScaleFactor
-		
-		for m in self.children() :
-			if isinstance(m, VIModule) :
-				t_loss = t_loss + m.evalAllLosses()*self.lossScaleFactor
-				
-		return t_loss
+
+	def eval_all_losses(self):
+		"""
+		Evaluate all loss functions in the VIModule, including those in child modules, and return their sum.
+		"""
+
+		total_loss = self.eval_losses()
+		for child in self.children():
+			if isinstance(child, VIModule):
+				total_loss += child.eval_all_losses()
+
+		return total_loss
+
 
 
 class MeanFieldGaussianFeedForward(VIModule) :
@@ -94,7 +140,7 @@ class MeanFieldGaussianFeedForward(VIModule) :
 			self.addLoss(lambda s : -self.out_features/2*np.log(2*np.pi) - 0.5*s.samples['bNoiseState'].pow(2).sum() - self.lbias_sigma.sum())
 			
 			
-	def sampleTransform(self, stochastic=True) :
+	def sampleTransform(self, stochastic=True):
 		self.samples['wNoiseState'] = self.noiseSourceWeights.sample().to(device=self.weights_mean.device)
 		self.samples['weights'] = self.weights_mean + (torch.exp(self.lweights_sigma)*self.samples['wNoiseState'] if stochastic else 0)
 		
