@@ -14,6 +14,7 @@ from torch.nn.parameter import Parameter
 
 from torch.distributions.normal import Normal
 
+
 class VIModule(nn.Module) :
 	"""
 	A mixin class to attach loss functions to layer. This is usefull when doing variational inference with deep learning.
