@@ -108,6 +108,7 @@ class MeanFieldGaussianFeedForward(VIModule):
             '''These losses are derived from ELBO, the 1st one is for the prior: -log(p(\theta)),
                    while the last one is for the parameterized posterior: -log(q_{\phi}(\theta))'''
             self.addLoss(lambda s: 0.5 * s.getSampledBias().pow(2).sum() / biasPriorSigma**2)
+            # Here, use reparameterized trick thus noise sample is occured.
             # self.addLoss(lambda s: -self.out_features / 2 * np.log(2 * np.pi) - 0.5 * s.samples['bNoiseState'].pow(2).sum() - self.lbias_sigma.sum())
             self.addLoss(lambda s: -self.out_features / 2 * np.log(2 * np.pi) - 0.5 * s.samples['bNoiseState'].pow(2).sum() - s.lbias_sigma.sum())
 
